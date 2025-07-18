@@ -23,6 +23,7 @@ import {
   Play,
   Calendar,
   Activity,
+  Key,
 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -46,6 +47,7 @@ import { CampaignCreationModal, type CampaignCreated } from "@/components/campai
 import { CampaignExportModal } from "@/components/campaign-export-modal"
 import { OnScriptActionButtons } from "@/components/onscript-action-buttons"
 import RingbaPixelSetup from "@/components/ringba-pixel-setup"
+import { ApiKeyManagementModal } from "@/components/api-key-management-modal"
 import { useAuth } from "@/contexts/auth-context"
 
 interface Campaign {
@@ -150,6 +152,7 @@ export function OnScriptCampaignsDashboard() {
   const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false)
   const [callLogsDateRange, setCallLogsDateRange] = useState<DateRange | undefined>(dateRange)
   const [showExportModal, setShowExportModal] = useState(false)
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const { user } = useAuth()
 
   // Performance optimization: Use refs to prevent unnecessary re-renders
@@ -774,6 +777,10 @@ export function OnScriptCampaignsDashboard() {
         return "#10b981"
       case "paused":
         return "#f59e0b"
+      case "active":
+        return "#10b981"
+      case "paused":
+        return "#f59e0b"
       case "completed":
         return "#6b7280"
       default:
@@ -969,78 +976,86 @@ export function OnScriptCampaignsDashboard() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="space-y-6 p-6">
-          {/* API Error/Warning Alerts */}
-          {apiError && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>RingBA API Connection Error</AlertTitle>
-              <AlertDescription>
-                {apiError}. Using your existing RingBA endpoint: /api/ringba/campaigns
-              </AlertDescription>
-            </Alert>
-          )}
+      <div className="space-y-6 p-6">
+        {/* API Error/Warning Alerts */}
+        {apiError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>RingBA API Connection Error</AlertTitle>
+            <AlertDescription>{apiError}. Using your existing RingBA endpoint: /api/ringba/campaigns</AlertDescription>
+          </Alert>
+        )}
 
-          {/* Success message when campaigns are loaded */}
-          {campaigns.length > 0 && !apiError && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>RingBA Campaigns Loaded</AlertTitle>
-              <AlertDescription>
-                Successfully loaded {campaigns.length} campaigns from your RingBA account
-                {dateRange?.from && dateRange?.to && (
-                  <span className="ml-2 text-blue-600">
-                    ({format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd, yyyy")})
-                  </span>
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
+        {/* Success message when campaigns are loaded */}
+        {campaigns.length > 0 && !apiError && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>RingBA Campaigns Loaded</AlertTitle>
+            <AlertDescription>
+              Successfully loaded {campaigns.length} campaigns from your RingBA account
+              {dateRange?.from && dateRange?.to && (
+                <span className="ml-2 text-blue-600">
+                  ({format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd, yyyy")})
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
 
-          {/* Header Bar */}
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">OnScript Campaigns</h1>
-            <div className="flex items-center gap-3">
-              {/* Tab Navigation */}
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="campaigns" className="flex items-center gap-2">
-                  <Target className="h-4 w-4" />
-                  Campaigns
-                </TabsTrigger>
-                <TabsTrigger value="calls" className="flex items-center gap-2" disabled={!selectedCampaign}>
-                  <MessageSquare className="h-4 w-4" />
-                  Call Analysis {selectedCampaign && `(${selectedCampaign.campaign_name})`}
-                </TabsTrigger>
-                <TabsTrigger value="pixel" className="flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Pixel Setup
-                </TabsTrigger>
-              </TabsList>
+        {/* Header Bar */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">OnScript Campaigns</h1>
+          <div className="flex items-center gap-3">
+            {/* Compact Date Range Picker */}
+            <SimpleWorkingCalendar
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+              onApply={handleDateRangeApply}
+              isLoading={isLoading}
+            />
 
-              {/* Compact Date Range Picker */}
-              <SimpleWorkingCalendar
-                dateRange={dateRange}
-                onDateRangeChange={setDateRange}
-                onApply={handleDateRangeApply}
-                isLoading={isLoading}
-              />
+            {/* API Key Management Button */}
+            <Button
+              variant="outline"
+              className="text-purple-600 border-purple-600 bg-transparent"
+              onClick={() => setShowApiKeyModal(true)}
+            >
+              <Key className="mr-2 h-4 w-4" />
+              API Keys
+            </Button>
 
-              <Button
-                variant="outline"
-                className="text-blue-600 border-blue-600 bg-transparent"
-                onClick={() => setShowCreateCampaignModal(true)}
-              >
-                <PlusIcon className="mr-2 h-4 w-4" />
-                Create Campaign
-              </Button>
+            <Button
+              variant="outline"
+              className="text-blue-600 border-blue-600 bg-transparent"
+              onClick={() => setShowCreateCampaignModal(true)}
+            >
+              <PlusIcon className="mr-2 h-4 w-4" />
+              Create Campaign
+            </Button>
 
-              <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setShowExportModal(true)}>
-                <Download className="mr-2 h-4 w-4" />
-                Export Campaigns
-              </Button>
-            </div>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setShowExportModal(true)}>
+              <Download className="mr-2 h-4 w-4" />
+              Export Campaigns
+            </Button>
           </div>
+        </div>
+
+        {/* Tab Navigation - Fixed Layout */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-3 mx-0">
+            <TabsTrigger value="campaigns" className="flex items-center gap-2 text-sm">
+              <Target className="h-4 w-4" />
+              Campaigns
+            </TabsTrigger>
+            <TabsTrigger value="calls" className="flex items-center gap-2 text-sm" disabled={!selectedCampaign}>
+              <MessageSquare className="h-4 w-4" />
+              Call Analysis
+            </TabsTrigger>
+            <TabsTrigger value="pixel" className="flex items-center gap-2 text-sm">
+              <Activity className="h-4 w-4" />
+              Pixel Setup
+            </TabsTrigger>
+          </TabsList>
 
           <TabsContent value="campaigns">
             {/* Analytics Overview */}
@@ -1689,12 +1704,13 @@ export function OnScriptCampaignsDashboard() {
               </Card>
             )}
           </TabsContent>
+
           {/* Pixel Setup Tab */}
           <TabsContent value="pixel">
             <RingbaPixelSetup userId={user?.id} />
           </TabsContent>
-        </div>
-      </Tabs>
+        </Tabs>
+      </div>
 
       {/* Enhanced Analysis Modal */}
       <AnalysisModal />
@@ -1712,6 +1728,9 @@ export function OnScriptCampaignsDashboard() {
         onClose={() => setShowExportModal(false)}
         campaigns={filteredCampaigns}
       />
+
+      {/* API Key Management Modal */}
+      <ApiKeyManagementModal isOpen={showApiKeyModal} onClose={() => setShowApiKeyModal(false)} />
     </div>
   )
 }
